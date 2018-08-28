@@ -8,19 +8,19 @@ john little
 QUESTION
 --------
 
-This repo documents a question where the patron wanted to improve the visualization of a choropleth mapping a variables over census tracts. The choropleth was find but the field surround the polygons was not descriptive. The hope was that adding more mapping detail would help clarify the geography.
+This repo documents a question where the patron wanted to improve the visual quality of a choropleth by mapping a variables over census tracts. The choropleth was fine but the field surround the polygons was not descriptive. The hope was that adding more mapping detail would help clarify the geography.
 
 SOLUTION
 --------
 
-Using the `sf` package and `ggplot::geom_sf` along with a layer of hydrography, I was able to overlay the water coastline on top of the choropleth. This method overcomes the problem created where census tracts actually extend over coastlines and obscure the land-mass geography.
+Using the `sf` package and `ggplot::geom_sf`, along with a layer of hydrography, I was able to overlay the water coastline on top of the choropleth. This method overcomes the problem created where census tracts actually extend over coastlines and obscure the land-mass geography.
 
 Inverting colors for Printing.
 ------------------------------
 
-Using `scale_fill_viridis(direction = -1)` reverses the color scheme automatically selected by the viridis package. I did this because printing to a black and white printer makes the standard viridis color ramp appear inverted. (to my eyes.)
+Using `scale_fill_viridis(direction = -1)` reverses the color scheme automatically selected by the viridis package. I did this because printing to a black and white printer makes the standard viridis color ramp appear inverted (to my eyes.)
 
-![](ny_with_coast.png)
+<img src="ny_with_coast.png" width="80%" />
 
 Code
 ----
