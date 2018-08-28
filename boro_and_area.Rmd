@@ -1,0 +1,245 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(sf)
+library(tidyverse)
+library(tigris)
+```
+
+
+## TEST Approach
+
+### Get Shapes
+
+Get shapefile for US
+
+```{r}
+ny_area <- states(class = "sf", year = 2000)
+```
+
+filter to NY and NJ
+
+```{r}
+ny_area <- ny_area %>% 
+  filter(NAME00 == "New York" |
+           NAME00 == "New Jersey" |
+           NAME00 == "Pennsylvania") 
+```
+
+View sf.dataframe
+
+```{r}
+as_tibble(ny_area)
+
+
+```
+
+### Zoom in: ny_area
+
+```{r}
+tri_state <- ggplot() +
+  geom_sf(data = ny_area, aes(fill = NAME00)) +
+  coord_sf(xlim = c(-73, -75), ylim = c(40, 41.5))
+
+tri_state
+```
+
+### Assign colors to states
+
+```{r}
+
+ggplot() +
+  geom_sf(data = ny_area, aes(fill = NAME00)) +
+  coord_sf(xlim = c(-73, -75), ylim = c(40, 41.5)) +
+  scale_fill_grey(start=1, end=0, name="% HCA")+
+   theme(axis.text.x = element_blank(), 
+  	     axis.text.y = element_blank(),
+  	     axis.ticks = element_blank(), 
+         axis.title.x = element_blank(), 
+         axis.title.y = element_blank(),
+         panel.grid.major = element_blank(), 
+         panel.grid.minor = element_blank(),
+         panel.background = element_rect(fill="lightskyblue1"), 
+         plot.background = element_rect(fill="lightskyblue1", color="black", size=1), 
+         axis.line = element_blank(),
+         legend.key=element_rect(colour="black"),
+         legend.background=element_rect(colour="black"))
+```
+
+## Apply with Test Data
+
+Thsi data approximates Ben's examples
+
+### Get NYC Area Tracts Polygons by County.  
+
+The counties New York City are:
+
+- 005 - Bronx
+- 047 - Kings (Brooklyn)
+- 061 - New York (Manhattan)
+- 081 - Queens
+- 085 - Richmond (Staten Island)
+
+```{r}
+manhattan <- tigris::tracts("NY", county = 061, year = 2000, class = "sf")
+bronx <- tigris::tracts("NY", county = 005, year = 2000, class = "sf")
+brooklyn <- tigris::tracts("NY", county = 047, year = 2000, class = "sf")
+queens <- tigris::tracts("NY", county = 081, year = 2000, class = "sf")
+staten <- tigris::tracts("NY", county = 085, year = 2000, class = "sf")
+  
+```
+
+
+```{r}
+borroughs <- rbind(manhattan, bronx, brooklyn, queens, staten)
+  
+```
+
+Plan to left_join on `borroughts$CTIDFP00`
+
+```{r}
+as_tibble(borroughs)
+```
+
+### Mock A Data Variable
+
+Get Census Pop for Bororoughs, 2000 
+
+plan to lef_join on `boro_pop$Geo_FIPS`
+
+```{r}
+boro_pop <- read_csv("data/boro_pop_2000.csv") 
+boro_pop <- boro_pop %>% 
+  mutate(CTIDFP00 = as.character(Geo_FIPS)) %>% 
+  rename(pop = SE_T001_001) %>% 
+  select(CTIDFP00, pop) 
+
+
+boro_pop
+```
+
+### left_join
+```{r}
+left_join(borroughs, boro_pop, by = "CTIDFP00") -> borroughs
+
+as_tibble(borroughs)
+
+```
+
+
+### Map it
+
+
+```{r}
+ggplot() +
+  geom_sf(data = borroughs, aes(fill = pop)) +
+  viridis::scale_fill_viridis() +
+  coord_sf(xlim = c(-73.6, -74.3), ylim = c(40.4, 41))
+  theme_bw()
+```
+
+## Layering
+
+```{r}
+first_pass <- ggplot() +
+  geom_sf(data = ny_area, aes(), color = "black", fill = "burlywood4") +
+  geom_sf(data = borroughs, aes(fill = pop)) +
+  viridis::scale_fill_viridis() +
+    coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95))
+
+first_pass
+```
+
+### Add Water Shading
+
+```{r}
+first_pass +
+   theme(axis.text.x = element_blank(), 
+  	     axis.text.y = element_blank(),
+  	     axis.ticks = element_blank(), 
+         axis.title.x = element_blank(), 
+         axis.title.y = element_blank(),
+         panel.grid.major = element_line(color = "transparent"),  
+         panel.grid.minor = element_blank(),
+         panel.background = element_rect(fill="lightskyblue1"),
+         plot.background = element_rect(fill="lightskyblue1", color="black", size=1), 
+         axis.line = element_blank(),
+         legend.key=element_rect(colour="black"),
+         legend.background=element_rect(colour="black"))
+  
+```
+
+## Black & White
+
+Reverse viridis direction for greyscale.
+
+```{r}
+ggplot() +
+  geom_sf(data = ny_area, aes(), color = "black", fill = "white") +
+  geom_sf(data = borroughs, aes(fill = pop)) +
+  viridis::scale_fill_viridis(direction = -1) +
+  coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) +
+  theme(axis.text.x = element_blank(), 
+  	    axis.text.y = element_blank(),
+  	    axis.ticks = element_blank(), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        panel.grid.major = element_line(color = "transparent"),  
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill="lightskyblue1"),
+        plot.background = element_rect(fill="lightskyblue1", color="black", size=1), 
+        axis.line = element_blank())
+```
+
+## Coastline
+
+shapefile from:  http://gis.ny.gov/gisdata/inventories/details.cfm?DSID=928 
+
+```{r}
+coast <- read_sf("data/hydrography_shp/AreaHydrography.shp")
+```
+
+```{r}
+nycoast <- ggplot() +
+  geom_sf(data = coast)
+
+nycoast
+```
+
+
+
+```{r}
+ggplot() +
+  geom_sf(data = ny_area, aes(), color = "black", fill = "white") +
+  geom_sf(data = borroughs, aes(fill = pop)) +
+  viridis::scale_fill_viridis(direction = -1) +
+  geom_sf(data = coast, color = "black", fill = "black") +
+  coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) +
+  theme(axis.text.x = element_blank(), 
+  	    axis.text.y = element_blank(),
+  	    axis.ticks = element_blank(), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        panel.grid.major = element_line(color = "transparent"),  
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill="lightskyblue1"),
+        plot.background = element_rect(fill="lightskyblue1", color="black", size=1), 
+        axis.line = element_blank())
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = borroughs, aes(fill = pop)) +
+  viridis::scale_fill_viridis(direction = -1) +
+  geom_sf(data = coast, color = "black", fill = "black") +
+  coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) + 
+  theme(panel.background = element_rect(fill = "transparent"), 
+        panel.grid.major = element_line(color = "transparent"), 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks = element_blank())
+```
