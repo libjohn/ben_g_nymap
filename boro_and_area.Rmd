@@ -1,5 +1,7 @@
 ---
 title: "R Notebook"
+author: "John Little"
+date: "`r Sys.Date()`"
 output: html_notebook
 ---
 
@@ -94,14 +96,14 @@ staten <- tigris::tracts("NY", county = 085, year = 2000, class = "sf")
 
 
 ```{r}
-borroughs <- rbind(manhattan, bronx, brooklyn, queens, staten)
+boroughs <- rbind(manhattan, bronx, brooklyn, queens, staten)
   
 ```
 
 Plan to left_join on `borroughts$CTIDFP00`
 
 ```{r}
-as_tibble(borroughs)
+as_tibble(boroughs)
 ```
 
 ### Mock A Data Variable
@@ -123,9 +125,9 @@ boro_pop
 
 ### left_join
 ```{r}
-left_join(borroughs, boro_pop, by = "CTIDFP00") -> borroughs
+left_join(boroughs, boro_pop, by = "CTIDFP00") -> boroughs
 
-as_tibble(borroughs)
+as_tibble(boroughs)
 
 ```
 
@@ -133,11 +135,11 @@ as_tibble(borroughs)
 ### Map it
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 ggplot() +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis() +
-  coord_sf(xlim = c(-73.6, -74.3), ylim = c(40.4, 41))
+  coord_sf(xlim = c(-73.6, -74.3), ylim = c(40.4, 41)) +
   theme_bw()
 ```
 
@@ -146,7 +148,7 @@ ggplot() +
 ```{r}
 first_pass <- ggplot() +
   geom_sf(data = ny_area, aes(), color = "black", fill = "burlywood4") +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis() +
     coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95))
 
@@ -179,7 +181,7 @@ Reverse viridis direction for greyscale.
 ```{r}
 ggplot() +
   geom_sf(data = ny_area, aes(), color = "black", fill = "white") +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis(direction = -1) +
   coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) +
   theme(axis.text.x = element_blank(), 
@@ -203,18 +205,61 @@ coast <- read_sf("data/hydrography_shp/AreaHydrography.shp")
 ```
 
 ```{r}
+as_tibble(coast)
+```
+
+### Problem trying to crop.  Need to consult with Mark due to the following errors:
+
+- although coordinates are **longitude/latitude**, st_intersection assumes that they are **planar**
+- attribute variables are assumed to be spatially constant throughout all geometries
+
+resources may include:
+
+- https://r-spatial.github.io/sf/articles/sf6.html#although-coordinates-are-longitudelatitude-xxx-assumes-that-they-are-planar
+- https://r-spatial.github.io/sf/articles/sf1.html#geometrycollection 
+- https://r-spatial.github.io/sf/reference/st_crs.html 
+- https://r-spatial.github.io/sf/reference/st_bbox.html 
+- https://r-spatial.github.io/sf/reference/st_crop.html 
+- https://gis.stackexchange.com/questions/282524/cropping-sf-object-in-r
+- https://stackoverflow.com/questions/50140707/how-to-merge-a-shapefile-with-a-dataframe-with-latitude-longitude-data
+- 
+
+``` r
+coast1 <- st_set_crs(coast, st_crs(boroughs))
+
+st_crs(coast)
+st_crs(coast1)
+st_crs(boroughs)
+
+coast1 <- st_crop(coast1, st_bbox(boroughs))
+
+foo <- st_intersection(boroughs, coast1)
+
+ggplot() +
+  geom_sf(data = coast1)
+
+st_bbox(boroughs)
+
+
+st_crs(st_set_crs(coast, st_crs(boroughs)))
+```
+### No Cropping
+
+```{r}
 nycoast <- ggplot() +
   geom_sf(data = coast)
 
 nycoast
 ```
 
+## 3 Layers
 
+Borough choropleth + Sate Area boundaries + Hydrography
 
 ```{r}
 ggplot() +
   geom_sf(data = ny_area, aes(), color = "black", fill = "white") +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis(direction = -1) +
   geom_sf(data = coast, color = "black", fill = "black") +
   coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) +
@@ -230,10 +275,13 @@ ggplot() +
         axis.line = element_blank())
 ```
 
+## Final
+
+removed state boundaries.  population choropleth and hydrography remain.
 
 ```{r}
 ggplot() +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis(direction = -1) +
   geom_sf(data = coast, color = "black", fill = "black") +
   coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) + 

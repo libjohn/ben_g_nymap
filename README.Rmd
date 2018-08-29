@@ -27,7 +27,7 @@ knitr::include_graphics("ny_with_coast.png")
 
 ``` r
 ggplot() +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis(direction = -1) +
   geom_sf(data = coast, color = "black", fill = "black") +
   coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) + 

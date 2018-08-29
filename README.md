@@ -1,7 +1,7 @@
 README
 ================
 john little
-2018-08-28
+2018-08-29
 
 <!-- README.md is dyanamically generated.  Do Not Edit. -->
 <!-- Please, YOU CAN edit the .Rmd file -->
@@ -27,7 +27,7 @@ Code
 
 ``` r
 ggplot() +
-  geom_sf(data = borroughs, aes(fill = pop)) +
+  geom_sf(data = boroughs, aes(fill = pop)) +
   viridis::scale_fill_viridis(direction = -1) +
   geom_sf(data = coast, color = "black", fill = "black") +
   coord_sf(xlim = c(-73.7, -74.3), ylim = c(40.45, 40.95)) + 
